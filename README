@@ -1,4 +1,4 @@
-hOp -- Sébastien Carlier and Jérémy Bobbio
+hOp -- SÃ©bastien Carlier and JÃ©rÃ©my Bobbio
 
 What is hOp ?
 =============
@@ -254,4 +254,15 @@ Main.hs   | Start a console driver which handles a basic x86 text console
           | Start an idle thread
           | Bind the keyboard and console driver to a simple Readline clone
           |     which allows shell-like interaction with the system
+Compilation with Modern GHC Versions
+------------------------------------
 
+The repository now provides a `setup.sh` script that installs the latest
+available versions of GHC and Cabal along with useful Haskell utilities.
+Each package is installed individually so the script will continue even if a
+package cannot be found. The script also installs `pre-commit` via pip and
+configures hooks for `hlint` and `stylish-haskell`.
+
+Run the script once before building:
+
+sudo ./setup.sh

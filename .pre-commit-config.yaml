@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: hlint
+        name: hlint
+        entry: hlint
+        language: system
+        types: [haskell]
+      - id: stylish-haskell
+        name: stylish-haskell
+        entry: stylish-haskell -i
+        language: system
+        types: [haskell]
+

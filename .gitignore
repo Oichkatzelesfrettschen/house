@@ -1,0 +1,4 @@
+# Ignore files created by pre-commit
+.pre-commit
+__pycache__/
+
