@@ -8,7 +8,8 @@ GHCSRC  = ghc-$(GHCVER)-src.tar.bz2
 GHCXSRC = ghc-$(GHCVER)-src-extralibs.tar.bz2
 GHCMD5  = 43108417594be7eba0918c459e871e40
 GHCXMD5 = d199c50814188fb77355d41058b8613c
-GHCURL  = http://www.haskell.org/ghc/dist/$(GHCVER)
+# Updated URL for old GHC releases
+GHCURL  = https://downloads.haskell.org/~ghc/$(GHCVER)
 GHCTOP	= $(TOP)/ghc-$(GHCVER)
 GRUBDIR	= /boot/grub/
 MPOINT	= $(TOP)/floppy_dir
@@ -135,8 +136,18 @@ $P:
 	mkdir -p $(MPOINT)
 	cd $(MPOINT) && wget http://pciids.sourceforge.net/pci.ids.gz
 
+# The GRUB stage2 image is provided in this repository. If it is
+# missing, copy one from a GRUB 0.97 distribution or set STAGE2URL to a
+# mirror and fetch it automatically.
+STAGE2URL ?= https://downloads.haskell.org/~ghc/house-mirror/stage2
+
 stage2:
-	wget http://www.cse.ogi.edu/~hallgren/House/stage2
+	@if [ -f stage2 ]; then \
+	echo "stage2 already present."; \
+	else \
+	echo "Retrieving stage2 from $(STAGE2URL)"; \
+		wget "$(STAGE2URL)" -O stage2; \
+	fi
 
 House.iso: House.flp
 	rm -rf iso
