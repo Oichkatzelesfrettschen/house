@@ -142,12 +142,15 @@ unsigned get_pixel(int x,int y,unsigned undef)
 
 void fill_rectangle(int x0,int y0,int w,int h)
 {
-  int x,y;
+  int x1=x0, y1=y0, x2=x0+w, y2=y0+h, x,y;
   hide_cursor();
-  /* TODO: compute intersection with clip rectangle */
-  for(y=y0;y<y0+h;y++)
-    for(x=x0;x<x0+w;x++)
-      setpixel(x,y);
+  if(x1<clip.xmin) x1=clip.xmin;
+  if(y1<clip.ymin) y1=clip.ymin;
+  if(x2>clip.xmax) x2=clip.xmax;
+  if(y2>clip.ymax) y2=clip.ymax;
+  for(y=y1;y<y2;y++)
+    for(x=x1;x<x2;x++)
+      setpixelclip(x,y,&clip);
   show_cursor();
 }
 

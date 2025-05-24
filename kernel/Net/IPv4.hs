@@ -78,16 +78,16 @@ instance Parse Precedence where
 data Packet content = Packet
                     { version       :: !Word8{-4-}
                     , headerLen     :: !Int{-4-} -- in units of 4 bytes
-		    , tos           :: !TypeOfService{-8-}
+                    , tos           :: !TypeOfService{-8-}
                     , totalLen      :: !Word16 -- in bytes
-                    , identifier    :: !Word16 
+                    , identifier    :: !Word16
                     , flags         :: !Flags{-3-}
                     , fragOff       :: !Word16{-13-}  -- in units of 8 bytes
                     , timeToLive    :: !Word8{-8-}
                     , protocol      :: !Protocol{-8-}
                     , headerCheck   :: !Word16
                     , source, dest  :: !Addr
-                    , options       :: ![Word8]
+                    , options       :: ![Option]
                     , content       :: !content
                     } deriving Show
 
@@ -173,20 +173,67 @@ instance Unparse Protocol where
 
 -- TODO:
 data Option         = Short Word8
-                    | Long 
+                    | Long
                         { optType :: OptType
                         , optLen  :: Word8    -- includes type & self
                         , optData :: [Word8] }
+                    deriving Show
 
-data OptType        = OptType 
+data OptType        = OptType
                         { optCopied :: Bool     {-1-}
                         , optClass  :: OptClass {-2-}
                         , optNumber :: Word8    {-5-}
-                        } 
+                        }
+                    deriving Show
 
 data OptClass       = Control | Reserved1 | DebugMeasure | Reserved4
-                      deriving Enum
-                            
+                      deriving (Enum,Show)
+
+
+instance Parse OptType where
+  parse = mkOptType # word8
+    where
+      mkOptType b = OptType { optCopied = testBit b 7
+                            , optClass  = toEnum (fromIntegral ((b `shiftR` 5) .&. 3))
+                            , optNumber = b .&. 0x1f }
+
+instance Unparse OptType where
+  unparse t = unparse b
+    where
+      b = (if optCopied t then 0x80 else 0) .|.
+          (fromIntegral (fromEnum (optClass t)) `shiftL` 5) .|.
+          optNumber t
+
+instance Parse Option where
+  parse = do
+    b <- word8
+    case b of
+      0 -> return (Short b)
+      1 -> return (Short b)
+      _ -> do l <- word8
+               d <- bytes (fromIntegral l - 2)
+               return (Long (mkOptType b) l d)
+
+instance Unparse Option where
+  unparse (Short b) = unparse b
+  unparse Long{optType=t,optLen=l,optData=d} =
+      unparse (b,l,d)
+    where
+      b = (if optCopied t then 0x80 else 0) .|.
+          (fromIntegral (fromEnum (optClass t)) `shiftL` 5) .|.
+          optNumber t
+
+optionLength :: Option -> Int
+optionLength (Short _) = 1
+optionLength Long{optLen=l} = fromIntegral l
+
+optionsP :: Int -> PacketParser [Option]
+optionsP n | n<=0 = return []
+optionsP n = do
+  o <- parse
+  let l = optionLength o
+  os <- optionsP (n-l)
+  return (o:os)
 
 --instance Parse (Packet InPacket) where parse = ipv4parse # therest
 
@@ -199,17 +246,17 @@ instance Parse contents => Parse (Packet contents) where
        totlen <- parse    -- totalLen      :: !Int{-16-} -- in bytes
        let datalen = fromIntegral totlen - 4*hl
        Packet v hl tos totlen
-	     # parse      -- identifier    :: !Word16 
-	    <# parse      -- flags         :: !Flags{-3-}
-	    <# bits 13    -- fragOff       :: !Int{-13-}  -- in units of 8 bytes
-	    <# parse      -- timeToLive    :: !Word8{-8-}
-	    <# parse      -- protocol      :: !Protocol
-	    <# parse      -- headerCheck   :: !Word16
-	    <# parse      -- source        :: !Addr
-	    <# parse      -- dest          :: !Addr
-	    <# bytes olen -- options       :: ![Word8]
+             # parse      -- identifier    :: !Word16
+            <# parse      -- flags         :: !Flags{-3-}
+            <# bits 13    -- fragOff       :: !Int{-13-}  -- in units of 8 bytes
+            <# parse      -- timeToLive    :: !Word8{-8-}
+            <# parse      -- protocol      :: !Protocol
+            <# parse      -- headerCheck   :: !Word16
+            <# parse      -- source        :: !Addr
+            <# parse      -- dest          :: !Addr
+            <# optionsP olen -- options       :: ![Option]
             #! trunc datalen -- discard padding
-	    <# parse      -- content       :: !content
+            <# parse      -- content       :: !content
 
 {-
 ipv4parse          :: InPacket -> Packet InPacket
@@ -249,7 +296,8 @@ ipv4unparse        :: Packet OutPacket -> OutPacket
 ipv4unparse p       = addChunk realHeader (content p)
   where -- computed fields
         hL          = 5 + optWords
-        optLen      = length (options p)    --- XXX
+        optBytes    = outBytes (doUnparse (options p))
+        optLen      = length optBytes
         optWords    = (optLen+3) `div` 4
         padLen      = 4 * optWords - optLen
         tL          = hL * 4 + outLen (content p)
@@ -261,7 +309,7 @@ ipv4unparse p       = addChunk realHeader (content p)
                      , c1 , c2 , c3 , c4
                      , d1 , d2 , d3 , d4
                      , e1 , e2 , e3 , e4 ]
-                     ++ options p ++ replicate padLen 0
+                     ++ optBytes ++ replicate padLen 0
 
         -- yuk
         -- perhaps use a diff array here
