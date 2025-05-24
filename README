@@ -1,4 +1,4 @@
-hOp -- Sébastien Carlier and Jérémy Bobbio
+hOp -- SÃ©bastien Carlier and JÃ©rÃ©my Bobbio
 
 What is hOp ?
 =============
@@ -29,9 +29,17 @@ http://uclibc.org/downloads/buildroot-sources/genext2fs_1.3.orig.tar.gz
 Build steps are as follows:
 
 1. Enter "make boot" to download and extract the source code of GHC.
+   If this step fails, the archives can be obtained manually from
+   https://downloads.haskell.org/~ghc/6.8.2/. Place
+   ghc-6.8.2-src.tar.bz2 and ghc-6.8.2-src-extralibs.tar.bz2 in the
+   repository root before running make boot again.
 
 2. Either enter "make floppy" to build a 2.88 MB floppy image named
    hOp.flp, or enter "make iso" to build a bootable CDROM image.
+   The GRUB `stage2` image is already included in this repository.
+   If it is missing, copy it from a GRUB 0.97 installation or set
+   `STAGE2URL` in the Makefile to a mirror location before running
+   `make stage2`.
 
 Starting hOp
 ============
