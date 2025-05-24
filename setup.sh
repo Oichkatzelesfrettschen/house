@@ -28,12 +28,27 @@ base_pkgs=(
   build-essential make autoconf automake libtool
   gcc g++ curl git
   python3 python3-pip
-  ghc cabal-install
+  gdb valgrind clang clang-format clang-tidy llvm lcov
+  qemu-system-x86 qemu-utils afl++
+  cabal-install hlint shellcheck
 )
 
 for pkg in "${base_pkgs[@]}"; do
   apt_pin_install "$pkg"
 done
+
+# Install the latest recommended GHC and Cabal via ghcup
+if ! command -v ghcup >/dev/null 2>&1; then
+  curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | bash -s -- -y
+fi
+if [ -f "$HOME/.ghcup/env" ]; then
+  # shellcheck source=/dev/null
+  source "$HOME/.ghcup/env"
+  ghcup install ghc recommended || true
+  ghcup set ghc recommended || true
+  ghcup install cabal recommended || true
+  ghcup set cabal recommended || true
+fi
 
 # Install pre-commit via pip; ignore failure if network is unavailable
 pip3 install --no-cache-dir pre-commit || true
