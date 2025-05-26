@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
 # Bootstrap script for Codex environment
 set -euo pipefail
+# Enable verbose output for easier debugging
 set -x
 
-# log everything to setup.log
+# Log everything to setup.log for troubleshooting
 LOGFILE="$(dirname "$0")/setup.log"
 exec > >(tee -a "$LOGFILE") 2>&1
+
+# Utility to run a command and log any failure instead of exiting.
+# This helps identify issues without aborting the entire setup.
+run_cmd() {
+  "$@" || echo "WARNING: command failed: $*" >&2
+}
 
 # Abort if not running as root
 if [[ $(id -u) -ne 0 ]]; then
@@ -19,9 +26,9 @@ apt_pin_install() {
   local pkg=$1 ver rc
   ver=$(apt-cache show "$pkg" 2>/dev/null | awk '/^Version:/{print $2;exit}' || true)
   if [[ -n $ver ]]; then
-    apt-get -y install "${pkg}=${ver}"
+    run_cmd apt-get -y install "${pkg}=${ver}"
   else
-    apt-get -y install "$pkg"
+    run_cmd apt-get -y install "$pkg"
   fi
   rc=$?
   return $rc
@@ -39,12 +46,12 @@ install_tool() {
     return 0
   fi
   echo "pip install failed for $pkg, trying npm" >&2
-  npm -g install "$pkg" || true
+  run_cmd npm -g install "$pkg"
 }
 
 # Update package lists and upgrade existing packages
-apt-get -o Acquire::Retries=3 update -y
-apt-get -y dist-upgrade || true
+run_cmd apt-get -o Acquire::Retries=3 update -y
+run_cmd apt-get -y dist-upgrade
 
 # Base development tools
 base_pkgs=(
@@ -79,15 +86,15 @@ if [ -f "$HOME/.ghcup/env" ]; then
 fi
 
 # Install pre-commit via pip; ignore failure if network is unavailable
-pip3 install --no-cache-dir pre-commit || true
+run_cmd pip3 install --no-cache-dir pre-commit
 
 # Install git hooks if pre-commit is available
 if command -v pre-commit >/dev/null 2>&1; then
-  pre-commit install || true
+  run_cmd pre-commit install
 fi
 
 # Clean APT caches
-apt-get clean
-rm -rf /var/lib/apt/lists/*
+run_cmd apt-get clean
+run_cmd rm -rf /var/lib/apt/lists/*
 
 echo "== setup complete =="
