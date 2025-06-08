@@ -62,7 +62,7 @@ base_pkgs=(
   llvm-bolt
   qemu-system-x86 qemu-utils afl++
   cabal-install hlint shellcheck
-  graphviz doxygen pandoc
+  graphviz doxygen pandoc python3-sphinx
   coq isabelle tlaplus agda
   nodejs npm
   libcapnproto-dev
