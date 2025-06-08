@@ -1,0 +1,12 @@
+diff -u ghc-xen/configure.ac ghc-house/configure.ac
+--- ghc-xen/configure.ac	2025-06-06 20:25:33.348048765 +0000
++++ ghc-house/configure.ac	2025-06-06 20:25:37.624095895 +0000
+@@ -3,7 +3,7 @@
+ FP_CHECK_ALIGNMENT(unsigned long long)
+ fi
+ FP_CHECK_ALIGNMENT(unsigned short)
+-FP_CHECK_ALIGNMENT(void *)
++FP_CHECK_ALIGNMENT([void *])
+ 
+ FP_CHECK_FUNC([WinExec],
+   [@%:@include <windows.h>], [WinExec("",0)])
